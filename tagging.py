@@ -33,19 +33,22 @@ def tag_snapshots():
         devnum = 0
         numberofdevs=len(image['BlockDeviceMappings'])
         for device in image['BlockDeviceMappings']:
-            if 'SnapshotId' in device['Ebs']:
-                devnum += 1
-                snapshot = snapshots[device['Ebs']['SnapshotId']]
-                snapshot['Used'] = True
-                cur_tags = boto3_tag_list_to_ansible_dict(snapshot.get('Tags', []))
-                new_tags = copy.deepcopy(cur_tags)
-                new_tags.update(tags)
-                new_tags['ImageId'] = image['ImageId']
-                # here's where to change formatting
-                new_tags['Name'] = 'AMI:' + image['Name'] + ' ' + device['DeviceName'] + ' (' + str(devnum) + '/' + str(numberofdevs) + ')'
-                if new_tags != cur_tags:
-                    logger.info('{0}: Tags changed to {1}'.format(snapshot['SnapshotId'], new_tags))
-                    ec2.create_tags(Resources=[snapshot['SnapshotId']], Tags=ansible_dict_to_boto3_tag_list(new_tags))
+            try:
+                if 'SnapshotId' in device['Ebs']:
+                    devnum += 1
+                    snapshot = snapshots[device['Ebs']['SnapshotId']]
+                    snapshot['Used'] = True
+                    cur_tags = boto3_tag_list_to_ansible_dict(snapshot.get('Tags', []))
+                    new_tags = copy.deepcopy(cur_tags)
+                    new_tags.update(tags)
+                    new_tags['ImageId'] = image['ImageId']
+                    # here's where to change formatting
+                    new_tags['Name'] = 'AMI:' + image['Name'] + ' ' + device['DeviceName'] + ' (' + str(devnum) + '/' + str(numberofdevs) + ')'
+                    if new_tags != cur_tags:
+                        logger.info('{0}: Tags changed to {1}'.format(snapshot['SnapshotId'], new_tags))
+                        ec2.create_tags(Resources=[snapshot['SnapshotId']], Tags=ansible_dict_to_boto3_tag_list(new_tags))
+            except:
+                logger.info('{0}: Invalid value in Ebs')
 
     for snapshot in snapshots.values():
         if 'Used' not in snapshot:
@@ -77,7 +80,10 @@ def tag_volumes():
                     new_tags = copy.deepcopy(cur_tags)
                     new_tags.update(tags)
                     # here's where to change formatting
-                    new_tags['Name'] = tags['Name'] + ' ' + device['DeviceName'] + ' (' + str(devnum) + '/' + str(numberofdevs) + ')'
+                    try:
+                        new_tags['Name'] = tags['Name'] + ' ' + device['DeviceName'] + ' (' + str(devnum) + '/' + str(numberofdevs) + ')'
+                    except:
+                        new_tags['Name'] = instance['InstanceId'] + ' ' + device['DeviceName'] + ' (' + str(devnum) + '/' + str(numberofdevs) + ')'                        
                     if new_tags != cur_tags:
                         logger.info('{0} Tags changed to {1}'.format(volume['VolumeId'], new_tags))
                         ec2.create_tags(Resources=[volume['VolumeId']], Tags=ansible_dict_to_boto3_tag_list(new_tags))
