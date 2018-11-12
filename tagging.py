@@ -10,6 +10,10 @@
 # Simplest privilege to get it to work with reasonable security:  use predefined policy "ReadOnlyAccess" 
 # and add your own custom policy that grants  "ec2:CreateTags" 
 
+# updated by Ben Szutu <bszutu AT gmail dot com>
+# improvement to original script, add exception handling for instance with Ephemeral storage
+# which does not have Id and cause original script to crash
+
 
 import copy
 import logging
